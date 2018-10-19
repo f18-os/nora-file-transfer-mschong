@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 import sys, os, socket, params, time
-from threading import Thread
+from threading import Thread, Lock
 from framedSock import FramedStreamSock
 
 switchesVarDefaults = (
@@ -9,6 +9,7 @@ switchesVarDefaults = (
     (('-?', '--usage'), "usage", False), # boolean (set if present)
     )
 
+mutex = Lock()
 progname = "echoserver"
 paramMap = params.parseParams(switchesVarDefaults)
 
@@ -32,34 +33,37 @@ class ServerThread(Thread):
     def run(self):
         while True:
             msg = self.fsock.receivemsg()
-            if not msg:
-                if self.debug: print(self.fsock, "server thread done")
-                return
-            filename = msg.decode()
-            if os.path.exists('server-files/' + fileName):
-                print("File already exists on server")
-                self.fsock.sendmsg(b"Error: File already exists on server")
-                #framedSend(sock, b"Error: File already exists on server", debug)
-                return
-            requestNum = ServerThread.requestCount
-            time.sleep(0.001)
-            ServerThread.requestCount = requestNum + 1
-            #msg = ("%s! (%d)" % (msg, requestNum)).encode()
-            #self.fsock.sendmsg(msg)
-            self.fsock.sendmsg(b"SUCCESS")
-            #framedSend(sock, b"SUCCESS", debug)
-            f = open('server-files/' + filename, "wb")
-            #line = framedReceive(sock, debug)
-            line = self.fsock.receivemsg()
-            while(line.decode() != "done"):
-                print("Server line: " + line.decode())
-                f.write(line)
+            mutex.acquire()
+            try:
+                if not msg:
+                    if self.debug: print(self.fsock, "server thread done")
+                    return
+                filename = msg.decode()
+                if os.path.exists('server-files/' + filename):
+                    print("File already exists on server")
+                    self.fsock.sendmsg(b"Error: File already exists on server")
+                    #framedSend(sock, b"Error: File already exists on server", debug)
+                    return
+                requestNum = ServerThread.requestCount
+                time.sleep(0.001)
+                ServerThread.requestCount = requestNum + 1
+                #msg = ("%s! (%d)" % (msg, requestNum)).encode()
+                #self.fsock.sendmsg(msg)
+                self.fsock.sendmsg(b"SUCCESS")
+                #framedSend(sock, b"SUCCESS", debug)
+                f = open('server-files/' + filename, "wb")
                 #line = framedReceive(sock, debug)
                 line = self.fsock.receivemsg()
-            f.close()
-            #framedSend(sock, payload, debug)
-            self.fsock.sendmsg(msg)
-
+                while(line.decode() != "done"):
+                    print("Server line: " + line.decode())
+                    f.write(line)
+                    #line = framedReceive(sock, debug)
+                    line = self.fsock.receivemsg()
+                f.close()
+                #framedSend(sock, payload, debug)
+                self.fsock.sendmsg(msg)
+            finally:
+                mutex.release()
 
 while True:
     sock, addr = lsock.accept()

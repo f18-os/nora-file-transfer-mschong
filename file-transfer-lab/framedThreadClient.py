@@ -70,7 +70,7 @@ class ClientThread(Thread):
        print("sending FILE NAME")
        fs.sendmsg(fileName.encode())
        print("received:", fs.receivemsg())
-       if(fs.receivemsg().decode() == "SUCCESS"):
+       if(fs.receivemsg() == "SUCCESS"):
            f = open(fileName, 'rb')
            line = f.read(100)
            while(line):
@@ -81,7 +81,7 @@ class ClientThread(Thread):
                line = f.read(100)
            #framedSend(s, b"done", debug)
            fs.sendmsg(b"done")
-           print("received:", framedReceive(s, debug))
+           print("received:", fs.receivemsg())
        #fs.sendmsg(b"hello world")
        #print("received:", fs.receivemsg())
 
