@@ -59,6 +59,7 @@ class ServerThread(Thread):
                 while(line.decode() != "done"):
                     print("Server line: " + line.decode())
                     f.write(line)
+                    #time.sleep(0.001)
                     #line = framedReceive(sock, debug)
                     line = self.fsock.receivemsg()
                 f.close()
