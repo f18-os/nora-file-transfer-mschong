@@ -4,7 +4,7 @@
 import socket, sys, re, os
 import params
 from framedSock import FramedStreamSock
-from threading import Thread
+from threading import Thread, Lock
 import time
 
 switchesVarDefaults = (
@@ -69,8 +69,9 @@ class ClientThread(Thread):
 
        print("sending FILE NAME")
        fs.sendmsg(fileName.encode())
-       print("received:", fs.receivemsg())
-       if(fs.receivemsg() == "SUCCESS"):
+       r = fs.receivemsg()
+       print("received:", r.decode())
+       if(r.decode() == "SUCCESS"):
            f = open(fileName, 'rb')
            line = f.read(100)
            while(line):
@@ -80,10 +81,11 @@ class ClientThread(Thread):
                #framedSend(s, line, debug)
                line = f.read(100)
            #framedSend(s, b"done", debug)
+           print("Outside while")
            fs.sendmsg(b"done")
            print("received:", fs.receivemsg())
        #fs.sendmsg(b"hello world")
        #print("received:", fs.receivemsg())
 
-for i in range(100):
+for i in range(2):
     ClientThread(serverHost, serverPort, debug)

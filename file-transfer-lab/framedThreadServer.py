@@ -5,11 +5,11 @@ from framedSock import FramedStreamSock
 
 switchesVarDefaults = (
     (('-l', '--listenPort') ,'listenPort', 50001),
-    (('-d', '--debug'), "debug", False), # boolean (set if present)
+    (('-d', '--debug'), "debug", True), # boolean (set if present)
     (('-?', '--usage'), "usage", False), # boolean (set if present)
     )
 
-mutex = Lock()
+
 progname = "echoserver"
 paramMap = params.parseParams(switchesVarDefaults)
 
@@ -26,15 +26,17 @@ print("listening on:", bindAddr)
 
 class ServerThread(Thread):
     requestCount = 0            # one instance / class
+    mutex = Lock()
     def __init__(self, sock, debug):
         Thread.__init__(self, daemon=True)
         self.fsock, self.debug = FramedStreamSock(sock, debug), debug
         self.start()
     def run(self):
         while True:
-            msg = self.fsock.receivemsg()
-            mutex.acquire()
+            ServerThread.mutex.acquire()
+            print("Mutex acquired")
             try:
+                msg = self.fsock.receivemsg()
                 if not msg:
                     if self.debug: print(self.fsock, "server thread done")
                     return
@@ -63,7 +65,8 @@ class ServerThread(Thread):
                 #framedSend(sock, payload, debug)
                 self.fsock.sendmsg(msg)
             finally:
-                mutex.release()
+                ServerThread.mutex.release()
+                print("Mutex released")
 
 while True:
     sock, addr = lsock.accept()
